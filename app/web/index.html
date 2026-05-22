@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ChatGPT Session Manager</title>
+    <link rel="stylesheet" href="vendor/bootstrap.min.css">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">C</div>
+          <div>
+            <div class="brand-title">Session Manager</div>
+            <div class="brand-subtitle">ChatGPT profiles</div>
+          </div>
+        </div>
+
+        <nav class="side-nav" aria-label="Разделы">
+          <button class="side-link active" id="profilesNavBtn" type="button">
+            <span class="nav-icon">◫</span>
+            <span>Профили</span>
+          </button>
+          <button class="side-link" id="logsNavBtn" type="button">
+            <span class="nav-icon">≡</span>
+            <span>Логи</span>
+          </button>
+          <button class="side-link" id="settingsNavBtn" type="button">
+            <span class="nav-icon">⚙</span>
+            <span>Экспорт</span>
+          </button>
+        </nav>
+
+        <div class="side-section">
+          <div class="side-heading">Хранилище</div>
+          <div id="storagePath" class="side-path"></div>
+        </div>
+
+        <div class="side-version" id="appVersion"></div>
+      </aside>
+
+      <main class="workspace">
+        <header class="workspace-top">
+          <div>
+            <div class="breadcrumb">Профили</div>
+            <h1>ChatGPT Session Manager</h1>
+          </div>
+          <div class="top-actions">
+            <button class="icon-button" id="settingsBtn" title="Настройки экспорта" aria-label="Настройки экспорта">⚙</button>
+            <button class="icon-button" id="writeActiveBtn" title="Записать активный профиль" aria-label="Записать активный профиль">💾</button>
+            <button class="btn btn-primary" id="addProfileBtn">Добавить профиль</button>
+          </div>
+        </header>
+
+        <section id="alertHost" class="alert-host"></section>
+
+        <section id="profilesPage" class="page-view">
+          <section class="target-panel">
+            <div>
+              <div class="panel-label">Целевой файл</div>
+              <div id="exportPath" class="target-path"></div>
+            </div>
+            <button class="btn btn-secondary compact" id="settingsInlineBtn">Изменить</button>
+          </section>
+
+          <section class="data-card profiles-card">
+            <div class="data-card-head">
+              <div>
+                <h2>Профили</h2>
+                <p id="profilesSummary" class="muted"></p>
+              </div>
+              <div class="toolbar">
+                <div class="search-box">
+                  <span>⌕</span>
+                  <input id="profileSearch" type="search" placeholder="Поиск">
+                </div>
+                <button class="icon-button" id="refreshListBtn" title="Обновить список" aria-label="Обновить список">↻</button>
+              </div>
+            </div>
+
+            <section id="emptyState" class="empty-state d-none">
+              <h2>Профили отсутствуют</h2>
+              <p>Нажмите, чтобы добавить новый профиль ChatGPT.</p>
+              <button class="btn btn-primary" id="emptyAddBtn">Добавить профиль</button>
+            </section>
+
+            <div id="profilesTable" class="profiles-table"></div>
+
+            <footer class="table-footer">
+              <span id="profilesCount">0 профилей</span>
+              <span>Локальное хранение</span>
+            </footer>
+          </section>
+        </section>
+
+        <section id="logsPage" class="page-view d-none">
+          <section class="data-card logs-card">
+            <div class="data-card-head">
+              <div>
+                <h2>Логи</h2>
+                <p id="logsPath" class="muted"></p>
+              </div>
+              <div class="toolbar">
+                <button class="btn btn-secondary compact" id="copyLogsBtn">Копировать</button>
+                <button class="icon-button" id="refreshLogsBtn" title="Обновить логи" aria-label="Обновить логи">↻</button>
+              </div>
+            </div>
+            <pre id="logsViewer" class="logs-viewer" tabindex="0"></pre>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div class="floating-action-dropdown d-none" id="floatingActionDropdown"></div>
+
+    <div class="modal-backdrop d-none" id="modalBackdrop"></div>
+
+    <section class="modal-panel d-none" id="addModal" role="dialog" aria-modal="true">
+      <header class="modal-header">
+        <h2>Добавить профиль</h2>
+        <button class="icon-btn" data-close-modal aria-label="Закрыть">×</button>
+      </header>
+      <div class="modal-body choice-grid">
+        <button class="choice-card" id="autoAddBtn">
+          <span class="choice-title">Автоматически</span>
+          <span class="choice-text">Открыть ChatGPT во встроенном окне и получить сессию после входа.</span>
+        </button>
+        <button class="choice-card" id="manualAddBtn">
+          <span class="choice-title">Вручную</span>
+          <span class="choice-text">Вставить JSON ответа сессии или выбрать JSON-файл на диске.</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="modal-panel modal-wide d-none" id="manualModal" role="dialog" aria-modal="true">
+      <header class="modal-header">
+        <h2>Ручной ввод JSON</h2>
+        <button class="icon-btn" data-close-modal aria-label="Закрыть">×</button>
+      </header>
+      <div class="modal-body">
+        <div class="manual-helper">
+          <div>
+            <div class="helper-title">Получить JSON через браузер</div>
+            <div class="helper-text">Откройте session endpoint в стандартном браузере, затем скопируйте JSON сюда.</div>
+          </div>
+          <button class="btn btn-secondary" id="openSessionUrlBtn">Открыть страницу</button>
+        </div>
+        <textarea id="manualJson" class="form-control json-input" spellcheck="false" placeholder='{"accessToken":"...","sessionToken":"...","account":{"id":"..."},"expires":"..."}'></textarea>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="chooseFileBtn">Выбрать файл</button>
+          <button class="btn btn-primary" id="saveManualBtn">Создать профиль</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="modal-panel d-none" id="renameModal" role="dialog" aria-modal="true">
+      <header class="modal-header">
+        <h2>Переименовать профиль</h2>
+        <button class="icon-btn" data-close-modal aria-label="Закрыть">×</button>
+      </header>
+      <div class="modal-body">
+        <input id="renameInput" class="form-control" maxlength="120">
+        <div class="modal-actions">
+          <button class="btn btn-secondary" data-close-modal>Отмена</button>
+          <button class="btn btn-primary" id="renameSaveBtn">Сохранить</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="modal-panel modal-wide d-none" id="settingsModal" role="dialog" aria-modal="true">
+      <header class="modal-header">
+        <h2>Настройки экспорта</h2>
+        <button class="icon-btn" data-close-modal aria-label="Закрыть">×</button>
+      </header>
+      <div class="modal-body">
+        <label class="form-label" for="exportPathInput">Файл для перезаписи</label>
+        <input id="exportPathInput" class="form-control" placeholder="C:\Users\user\.codex\auth.json">
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="chooseExportFileBtn">Выбрать файл</button>
+          <button class="btn btn-secondary" id="resetExportPathBtn">По умолчанию</button>
+          <button class="btn btn-primary" id="saveExportPathBtn">Сохранить</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="modal-panel d-none" id="deleteModal" role="dialog" aria-modal="true">
+      <header class="modal-header">
+        <h2>Удалить профиль</h2>
+        <button class="icon-btn" data-close-modal aria-label="Закрыть">×</button>
+      </header>
+      <div class="modal-body">
+        <p id="deleteText"></p>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" data-close-modal>Отмена</button>
+          <button class="btn btn-danger" id="deleteConfirmBtn">Удалить</button>
+        </div>
+      </div>
+    </section>
+
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,4 @@
+pywebview>=5.0
+pydantic>=2.7
+pyinstaller>=6.0
+pytest>=8.0

@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build Windows executable
+        shell: pwsh
+        run: .\build.ps1
+
+      - name: Prepare release assets
+        shell: pwsh
+        run: |
+          $asset = ".\dist\ChatGPTSessionManager-windows-x64.exe"
+          Copy-Item ".\dist\ChatGPTSessionManager.exe" $asset
+          $hash = Get-FileHash $asset -Algorithm SHA256
+          "$($hash.Hash)  ChatGPTSessionManager-windows-x64.exe" | Set-Content -NoNewline -Encoding ascii "$asset.sha256"
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" `
+            ".\dist\ChatGPTSessionManager-windows-x64.exe" `
+            ".\dist\ChatGPTSessionManager-windows-x64.exe.sha256" `
+            --title "${{ github.ref_name }}" `
+            --generate-notes

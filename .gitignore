@@ -1,0 +1,15 @@
+.venv/
+dist/
+build/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.log
+.env
+
+# local user/session data
+auth.json
+profiles/
+settings.json
+app.log
+*.token
