@@ -5,6 +5,8 @@ const state = {
   renameId: null,
   deleteId: null,
   initialized: false,
+  updateInfo: null,
+  downloadedUpdatePath: null,
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -16,8 +18,14 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#refreshListBtn").addEventListener("click", loadProfiles);
   $("#profilesNavBtn").addEventListener("click", showProfilesPage);
   $("#logsNavBtn").addEventListener("click", showLogsPage);
+  $("#updatesNavBtn").addEventListener("click", showUpdatesPage);
   $("#refreshLogsBtn").addEventListener("click", loadLogs);
   $("#copyLogsBtn").addEventListener("click", copyLogs);
+  $("#checkUpdatesBtn").addEventListener("click", () => checkForUpdates(false));
+  $("#openReleaseBtn").addEventListener("click", openLatestRelease);
+  $("#downloadUpdateBtn").addEventListener("click", downloadUpdate);
+  $("#openDownloadedBtn").addEventListener("click", openDownloadedUpdate);
+  $("#installUpdateBtn").addEventListener("click", installUpdate);
   $("#profileSearch").addEventListener("input", (event) => {
     state.search = event.target.value.trim().toLowerCase();
     renderProfiles();
@@ -57,6 +65,7 @@ async function waitForApiAndLoad() {
       state.initialized = true;
       await loadAppInfo();
       await loadProfiles();
+      checkForUpdates(true);
       return;
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -211,18 +220,35 @@ function closeActionMenus() {
 function showProfilesPage() {
   $("#profilesPage").classList.remove("d-none");
   $("#logsPage").classList.add("d-none");
+  $("#updatesPage").classList.add("d-none");
   $("#profilesNavBtn").classList.add("active");
   $("#logsNavBtn").classList.remove("active");
+  $("#updatesNavBtn").classList.remove("active");
   $(".breadcrumb").textContent = "Профили";
 }
 
 async function showLogsPage() {
   $("#profilesPage").classList.add("d-none");
   $("#logsPage").classList.remove("d-none");
+  $("#updatesPage").classList.add("d-none");
   $("#profilesNavBtn").classList.remove("active");
   $("#logsNavBtn").classList.add("active");
+  $("#updatesNavBtn").classList.remove("active");
   $(".breadcrumb").textContent = "Логи";
   await loadLogs();
+}
+
+async function showUpdatesPage() {
+  $("#profilesPage").classList.add("d-none");
+  $("#logsPage").classList.add("d-none");
+  $("#updatesPage").classList.remove("d-none");
+  $("#profilesNavBtn").classList.remove("active");
+  $("#logsNavBtn").classList.remove("active");
+  $("#updatesNavBtn").classList.add("active");
+  $(".breadcrumb").textContent = "Обновления";
+  if (!state.updateInfo) {
+    await checkForUpdates(false);
+  }
 }
 
 async function loadLogs() {
@@ -243,6 +269,81 @@ async function copyLogs() {
   } catch (error) {
     showAlert("Не удалось скопировать логи. Выделите текст вручную.", "warning");
   }
+}
+
+async function checkForUpdates(silent) {
+  setUpdateStatus("checking", "Проверка...");
+  const result = await window.pywebview.api.check_for_updates();
+  if (!result.ok) {
+    setUpdateStatus("error", "Ошибка проверки");
+    $("#updatesSummary").textContent = result.error || "Не удалось проверить обновления.";
+    $("#releaseNotes").textContent = result.error || "";
+    if (!silent) {
+      showAlert(result.error || "Не удалось проверить обновления.", "danger");
+    }
+    return;
+  }
+  state.updateInfo = result;
+  $("#currentVersion").textContent = `v${result.current_version}`;
+  $("#latestVersion").textContent = `v${result.latest_version}`;
+  $("#releaseNotes").textContent = result.body || "Release notes отсутствуют.";
+  $("#updatesSummary").textContent = result.release_url || "GitHub Releases";
+  $("#downloadUpdateBtn").disabled = !result.has_update || !result.asset_url;
+  setUpdateStatus(result.has_update ? "available" : "current", result.has_update ? "Доступно обновление" : "Актуально");
+  if (silent && result.has_update) {
+    showAlert(`Доступна новая версия v${result.latest_version}.`, "info");
+  }
+}
+
+function setUpdateStatus(kind, text) {
+  const status = $("#updateStatus");
+  status.className = `status update-status update-${kind}`;
+  status.innerHTML = `<span class="status-dot"></span><span>${escapeHtml(text)}</span>`;
+}
+
+async function openLatestRelease() {
+  const result = await window.pywebview.api.open_latest_release();
+  if (!result.ok) {
+    showAlert(result.error, "danger");
+  }
+}
+
+async function downloadUpdate() {
+  if (!state.updateInfo || !state.updateInfo.asset_url) {
+    showAlert("Asset обновления не найден.", "warning");
+    return;
+  }
+  $("#downloadUpdateBtn").disabled = true;
+  $("#downloadUpdateBtn").textContent = "Скачивание...";
+  const result = await window.pywebview.api.download_update(state.updateInfo.asset_url);
+  $("#downloadUpdateBtn").textContent = "Скачать обновление";
+  $("#downloadUpdateBtn").disabled = false;
+  if (!result.ok) {
+    showAlert(result.error || "Не удалось скачать обновление.", "danger");
+    return;
+  }
+  state.downloadedUpdatePath = result.path;
+  $("#downloadPath").textContent = result.path;
+  $("#downloadResult").classList.remove("d-none");
+  showAlert(`Обновление скачано и проверено: ${result.path}`, "success");
+}
+
+async function openDownloadedUpdate() {
+  if (!state.downloadedUpdatePath) return;
+  const result = await window.pywebview.api.open_downloaded_update(state.downloadedUpdatePath);
+  if (!result.ok) {
+    showAlert(result.error, "danger");
+  }
+}
+
+async function installUpdate() {
+  if (!state.downloadedUpdatePath) return;
+  const result = await window.pywebview.api.install_update(state.downloadedUpdatePath);
+  if (!result.ok) {
+    showAlert(result.error, "danger");
+    return;
+  }
+  showAlert("Установка запущена. Приложение закроется.", "info");
 }
 
 async function createAutoProfile() {

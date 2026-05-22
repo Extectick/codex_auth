@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import logging
+import os
+import subprocess
+import sys
+import threading
 import webbrowser
 from pathlib import Path
 from typing import Any
@@ -10,6 +14,7 @@ import webview
 from .auth_capture import AuthCapture
 from .models import SessionParseError, parse_session_payload, utc_now_iso
 from .storage import ProfileStorage
+from .update_checker import LATEST_RELEASE_URL, check_for_updates as get_update_status, download_update as fetch_update
 from .version import __version__
 
 
@@ -43,6 +48,58 @@ class AppApi:
 
     def get_app_info(self) -> dict[str, Any]:
         return self._ok(name="ChatGPT Session Manager", version=__version__)
+
+    def check_for_updates(self) -> dict[str, Any]:
+        try:
+            return self._ok(**get_update_status())
+        except Exception as exc:
+            return self._error(str(exc), exc=exc)
+
+    def open_latest_release(self) -> dict[str, Any]:
+        try:
+            webbrowser.open(LATEST_RELEASE_URL)
+            return self._ok(release_url=LATEST_RELEASE_URL)
+        except Exception as exc:
+            return self._error(str(exc), exc=exc)
+
+    def download_update(self, asset_url: str) -> dict[str, Any]:
+        try:
+            return self._ok(**fetch_update(asset_url))
+        except Exception as exc:
+            return self._error(str(exc), exc=exc)
+
+    def open_downloaded_update(self, path: str) -> dict[str, Any]:
+        try:
+            os.startfile(str(Path(path)))  # type: ignore[attr-defined]
+            return self._ok(path=path)
+        except Exception as exc:
+            return self._error(str(exc), exc=exc)
+
+    def install_update(self, path: str) -> dict[str, Any]:
+        try:
+            source = Path(path)
+            if not source.exists():
+                return self._error(f"Файл обновления не найден: {source}")
+            updater = self._updater_path()
+            target = Path(sys.executable if getattr(sys, "frozen", False) else Path.cwd() / "dist" / "ChatGPTSessionManager.exe")
+            if not target.exists():
+                return self._error(f"Целевой exe не найден: {target}")
+            subprocess.Popen(
+                [
+                    str(updater),
+                    "--pid",
+                    str(os.getpid()),
+                    "--source",
+                    str(source),
+                    "--target",
+                    str(target),
+                ],
+                close_fds=True,
+            )
+            threading.Timer(0.5, self._close_window).start()
+            return self._ok()
+        except Exception as exc:
+            return self._error(str(exc), exc=exc)
 
     def create_manual_profile(self, raw_json: str) -> dict[str, Any]:
         try:
@@ -183,6 +240,21 @@ class AppApi:
 
     def _ok(self, **payload: Any) -> dict[str, Any]:
         return {"ok": True, **payload}
+
+    def _updater_path(self) -> Path:
+        base = Path(getattr(sys, "_MEIPASS", Path.cwd()))
+        candidates = [
+            base / "updater" / "updater.exe",
+            Path.cwd() / "dist" / "updater.exe",
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        raise FileNotFoundError("updater.exe не найден.")
+
+    def _close_window(self) -> None:
+        if webview.windows:
+            webview.windows[0].destroy()
 
     def _error(self, message: str, *, exc: Exception | None = None, log: bool = True, **payload: Any) -> dict[str, Any]:
         if log:

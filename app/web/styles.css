@@ -313,7 +313,8 @@ h2 {
 }
 
 .profiles-card,
-.logs-card {
+.logs-card,
+.updates-card {
   display: flex;
   flex: 1;
   min-height: 0;
@@ -471,6 +472,65 @@ h2 {
   user-select: text;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.updates-body {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+
+.update-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.version-value {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.update-current .status-dot {
+  background: var(--success);
+}
+
+.update-available .status-dot,
+.update-checking .status-dot {
+  background: var(--primary);
+}
+
+.update-error .status-dot {
+  background: var(--danger);
+}
+
+.release-notes {
+  min-height: 190px;
+  max-height: 320px;
+  margin: 0;
+  padding: 14px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: "Segoe UI", Arial, sans-serif;
+  white-space: pre-wrap;
+}
+
+.download-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.updates-actions {
+  margin-top: 0;
 }
 
 .empty-state,
@@ -770,6 +830,15 @@ h2 {
   }
 
   .manual-helper {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .update-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .download-result {
     align-items: stretch;
     flex-direction: column;
   }

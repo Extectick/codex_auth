@@ -19,7 +19,10 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
 
       - name: Compile Python sources
         run: python -m compileall app tests
@@ -42,10 +45,11 @@ jobs:
 
       - name: Prepare dev artifact
         shell: pwsh
+        # This artifact is for CI validation only. Stable user builds are published by release.yml from git tags.
         run: Copy-Item .\dist\ChatGPTSessionManager.exe .\dist\ChatGPTSessionManager-windows-x64-dev.exe
 
       - name: Upload dev artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ChatGPTSessionManager-windows-x64-dev
+          name: ChatGPTSessionManager-windows-x64-dev.exe
           path: dist/ChatGPTSessionManager-windows-x64-dev.exe

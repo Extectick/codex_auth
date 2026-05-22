@@ -27,6 +27,10 @@
             <span class="nav-icon">≡</span>
             <span>Логи</span>
           </button>
+          <button class="side-link" id="updatesNavBtn" type="button">
+            <span class="nav-icon">↥</span>
+            <span>Обновления</span>
+          </button>
           <button class="side-link" id="settingsNavBtn" type="button">
             <span class="nav-icon">⚙</span>
             <span>Экспорт</span>
@@ -108,6 +112,54 @@
               </div>
             </div>
             <pre id="logsViewer" class="logs-viewer" tabindex="0"></pre>
+          </section>
+        </section>
+
+        <section id="updatesPage" class="page-view d-none">
+          <section class="data-card updates-card">
+            <div class="data-card-head">
+              <div>
+                <h2>Обновления</h2>
+                <p id="updatesSummary" class="muted">Проверка GitHub Releases</p>
+              </div>
+              <div class="toolbar">
+                <button class="btn btn-secondary compact" id="openReleaseBtn">Открыть релиз</button>
+                <button class="btn btn-primary compact" id="checkUpdatesBtn">Проверить</button>
+              </div>
+            </div>
+            <div class="updates-body">
+              <div class="update-grid">
+                <div>
+                  <div class="panel-label">Текущая версия</div>
+                  <div id="currentVersion" class="version-value">-</div>
+                </div>
+                <div>
+                  <div class="panel-label">Последняя версия</div>
+                  <div id="latestVersion" class="version-value">-</div>
+                </div>
+                <div>
+                  <div class="panel-label">Статус</div>
+                  <div id="updateStatus" class="status">
+                    <span class="status-dot"></span>
+                    <span>Не проверялось</span>
+                  </div>
+                </div>
+              </div>
+              <pre id="releaseNotes" class="release-notes">Release notes появятся после проверки.</pre>
+              <div class="download-result d-none" id="downloadResult">
+                <div>
+                  <div class="panel-label">Скачанный файл</div>
+                  <div id="downloadPath" class="target-path"></div>
+                </div>
+                <div class="toolbar">
+                  <button class="btn btn-secondary compact" id="openDownloadedBtn">Открыть файл</button>
+                  <button class="btn btn-primary compact" id="installUpdateBtn">Установить</button>
+                </div>
+              </div>
+              <div class="modal-actions updates-actions">
+                <button class="btn btn-secondary" id="downloadUpdateBtn" disabled>Скачать обновление</button>
+              </div>
+            </div>
           </section>
         </section>
       </main>

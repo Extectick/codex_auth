@@ -6,7 +6,9 @@ if (-not (Test-Path ".venv")) {
 
 $running = Get-Process -Name "ChatGPTSessionManager" -ErrorAction SilentlyContinue
 if ($running) {
-    throw "Close ChatGPTSessionManager.exe before building. Running process id(s): $($running.Id -join ', ')"
+    Write-Host "Stopping ChatGPTSessionManager.exe process id(s): $($running.Id -join ', ')"
+    $running | Stop-Process -Force
+    Start-Sleep -Milliseconds 500
 }
 
 if (Test-Path ".\dist\ChatGPTSessionManager") {
@@ -15,6 +17,7 @@ if (Test-Path ".\dist\ChatGPTSessionManager") {
 
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\pyinstaller.exe .\updater\updater.py --onefile --name updater --distpath .\dist --workpath .\build\updater --specpath .\build\updater --clean --noconfirm
 .\.venv\Scripts\pyinstaller.exe .\pyinstaller.spec --clean --noconfirm
 
-Write-Host "Build complete: dist\ChatGPTSessionManager.exe"
+Write-Host "Build complete: dist\ChatGPTSessionManager.exe and dist\updater.exe"

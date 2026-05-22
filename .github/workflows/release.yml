@@ -21,6 +21,13 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Validate release tag
+        shell: pwsh
+        run: |
+          if ("${{ github.ref_name }}" -notmatch '^v\d+\.\d+\.\d+$') {
+            throw "Release tags must use vX.Y.Z format. Got: ${{ github.ref_name }}"
+          }
+
       - name: Build Windows executable
         shell: pwsh
         run: .\build.ps1
@@ -36,10 +43,11 @@ jobs:
       - name: Create GitHub Release
         shell: pwsh
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "${{ github.ref_name }}" `
             ".\dist\ChatGPTSessionManager-windows-x64.exe" `
             ".\dist\ChatGPTSessionManager-windows-x64.exe.sha256" `
             --title "${{ github.ref_name }}" `
-            --generate-notes
+            --generate-notes `
+            --verify-tag
