@@ -6,6 +6,7 @@ import sys
 import webview
 
 from app.api import AppApi
+from app.tray import start_tray
 
 
 def resource_path(relative: str) -> Path:
@@ -16,6 +17,7 @@ def resource_path(relative: str) -> Path:
 def main() -> None:
     web_dir = resource_path("app/web")
     api = AppApi()
+    start_tray(api, resource_path("app/assets/icon.ico"))
     webview.create_window(
         "ChatGPT Session Manager",
         str(web_dir / "index.html"),

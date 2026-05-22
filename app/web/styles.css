@@ -167,6 +167,17 @@ textarea {
   overflow-wrap: anywhere;
 }
 
+.side-action {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 750;
+  text-align: left;
+}
+
 .side-version {
   padding: 0 6px;
   color: var(--muted);
@@ -725,6 +736,47 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-2);
+}
+
+.recent-exports {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.recent-label {
+  margin-bottom: 0;
+}
+
+.recent-export-item {
+  min-height: 30px;
+  padding: 5px 8px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-export-item:hover {
+  background: var(--surface-3);
+}
+
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  border: 3px dashed var(--primary);
+  background: rgba(17, 24, 39, 0.68);
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 800;
+  pointer-events: none;
 }
 
 .helper-title {

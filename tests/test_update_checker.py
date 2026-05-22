@@ -54,11 +54,11 @@ def test_check_for_updates_maps_latest_release(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(update_checker.platform, "system", lambda: "Windows")
     monkeypatch.setattr(update_checker.platform, "machine", lambda: "AMD64")
 
-    result = update_checker.check_for_updates(fetcher=lambda: release_payload("v0.2.0"))
+    result = update_checker.check_for_updates(fetcher=lambda: release_payload("v0.3.0"))
 
     assert result == {
-        "current_version": "0.1.0",
-        "latest_version": "0.2.0",
+        "current_version": "0.2.0",
+        "latest_version": "0.3.0",
         "has_update": True,
         "release_url": "https://github.com/Extectick/codex_auth/releases/tag/v0.2.0",
         "asset_url": "https://example.test/app.exe",

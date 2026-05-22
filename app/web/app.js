@@ -44,11 +44,15 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#settingsInlineBtn").addEventListener("click", openSettings);
   $("#settingsNavBtn").addEventListener("click", openSettings);
   $("#writeActiveBtn").addEventListener("click", writeActiveProfile);
+  $("#openProfilesFolderBtn").addEventListener("click", openProfilesFolder);
+  $("#openExportFileBtn").addEventListener("click", openExportFile);
   $("#chooseExportFileBtn").addEventListener("click", chooseExportFile);
   $("#resetExportPathBtn").addEventListener("click", resetExportPath);
   $("#saveExportPathBtn").addEventListener("click", saveExportPath);
   $("#modalBackdrop").addEventListener("click", closeModals);
   $$("[data-close-modal]").forEach((node) => node.addEventListener("click", closeModals));
+  setupKeyboardShortcuts();
+  setupJsonDrop();
   waitForApiAndLoad();
 });
 
@@ -432,7 +436,7 @@ async function activateProfile(profileId) {
     return;
   }
   await loadProfiles();
-  showAlert(`Активный профиль выбран. Файл перезаписан: ${result.path}`, "success");
+  showAlert(formatWriteMessage(`Активный профиль выбран. Файл перезаписан: ${result.path}`, result.backup_path), "success");
 }
 
 async function writeActiveProfile() {
@@ -442,12 +446,34 @@ async function writeActiveProfile() {
     showAlert(result.error, "warning");
     return;
   }
-  showAlert(`Файл перезаписан: ${result.path}`, "success");
+  showAlert(formatWriteMessage(`Файл перезаписан: ${result.path}`, result.backup_path), "success");
 }
 
 function openSettings() {
   $("#exportPathInput").value = state.settings ? state.settings.export_path : "";
+  renderRecentExports();
   openModal("settingsModal");
+}
+
+function renderRecentExports() {
+  const host = $("#recentExports");
+  const paths = state.settings && Array.isArray(state.settings.recent_export_paths) ? state.settings.recent_export_paths : [];
+  host.innerHTML = "";
+  if (paths.length === 0) return;
+  const label = document.createElement("div");
+  label.className = "panel-label recent-label";
+  label.textContent = "Недавние пути";
+  host.appendChild(label);
+  paths.forEach((path) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "recent-export-item";
+    button.textContent = path;
+    button.addEventListener("click", () => {
+      $("#exportPathInput").value = path;
+    });
+    host.appendChild(button);
+  });
 }
 
 async function chooseExportFile() {
@@ -458,7 +484,7 @@ async function chooseExportFile() {
   }
   closeModals();
   await loadProfiles();
-  showAlert(result.synced_path ? `Путь сохранён. Файл перезаписан: ${result.synced_path}` : "Путь сохранён.", "success");
+  showAlert(formatWriteMessage(result.synced_path ? `Путь сохранён. Файл перезаписан: ${result.synced_path}` : "Путь сохранён.", result.backup_path), "success");
 }
 
 async function saveExportPath() {
@@ -469,7 +495,7 @@ async function saveExportPath() {
   }
   closeModals();
   await loadProfiles();
-  showAlert(result.synced_path ? `Путь сохранён. Файл перезаписан: ${result.synced_path}` : "Путь сохранён.", "success");
+  showAlert(formatWriteMessage(result.synced_path ? `Путь сохранён. Файл перезаписан: ${result.synced_path}` : "Путь сохранён.", result.backup_path), "success");
 }
 
 async function resetExportPath() {
@@ -480,7 +506,7 @@ async function resetExportPath() {
   }
   closeModals();
   await loadProfiles();
-  showAlert(result.synced_path ? `Путь по умолчанию восстановлен. Файл перезаписан: ${result.synced_path}` : "Путь по умолчанию восстановлен.", "success");
+  showAlert(formatWriteMessage(result.synced_path ? `Путь по умолчанию восстановлен. Файл перезаписан: ${result.synced_path}` : "Путь по умолчанию восстановлен.", result.backup_path), "success");
 }
 
 async function handleProfileMutation(result, successMessage) {
@@ -512,6 +538,61 @@ function showAlert(message, type = "info") {
   alert.textContent = message;
   host.appendChild(alert);
   setTimeout(() => alert.remove(), 7000);
+}
+
+async function openProfilesFolder() {
+  const result = await window.pywebview.api.open_profiles_folder();
+  if (!result.ok) {
+    showAlert(result.error, "danger");
+  }
+}
+
+async function openExportFile() {
+  const result = await window.pywebview.api.open_export_file();
+  if (!result.ok) {
+    showAlert(result.error, "danger");
+  }
+}
+
+function setupKeyboardShortcuts() {
+  document.addEventListener("keydown", (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+      event.preventDefault();
+      writeActiveProfile();
+    }
+  });
+}
+
+function setupJsonDrop() {
+  const overlay = $("#dropOverlay");
+  window.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    overlay.classList.remove("d-none");
+  });
+  window.addEventListener("dragleave", (event) => {
+    if (event.clientX <= 0 || event.clientY <= 0 || event.clientX >= window.innerWidth || event.clientY >= window.innerHeight) {
+      overlay.classList.add("d-none");
+    }
+  });
+  window.addEventListener("drop", async (event) => {
+    event.preventDefault();
+    overlay.classList.add("d-none");
+    const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".json")) {
+      showAlert("Перетащите JSON-файл.", "warning");
+      return;
+    }
+    const content = await file.text();
+    $("#manualJson").value = content;
+    closeModals();
+    openModal("manualModal");
+    showAlert(`JSON загружен: ${file.name}`, "success");
+  });
+}
+
+function formatWriteMessage(message, backupPath) {
+  return backupPath ? `${message}. Backup: ${backupPath}` : message;
 }
 
 function formatDate(value) {

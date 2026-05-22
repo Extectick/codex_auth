@@ -40,6 +40,7 @@
         <div class="side-section">
           <div class="side-heading">Хранилище</div>
           <div id="storagePath" class="side-path"></div>
+          <button class="side-action" id="openProfilesFolderBtn" type="button">Открыть папку</button>
         </div>
 
         <div class="side-version" id="appVersion"></div>
@@ -66,7 +67,10 @@
               <div class="panel-label">Целевой файл</div>
               <div id="exportPath" class="target-path"></div>
             </div>
-            <button class="btn btn-secondary compact" id="settingsInlineBtn">Изменить</button>
+            <div class="toolbar">
+              <button class="btn btn-secondary compact" id="openExportFileBtn">Открыть файл</button>
+              <button class="btn btn-secondary compact" id="settingsInlineBtn">Изменить</button>
+            </div>
           </section>
 
           <section class="data-card profiles-card">
@@ -229,6 +233,7 @@
       <div class="modal-body">
         <label class="form-label" for="exportPathInput">Файл для перезаписи</label>
         <input id="exportPathInput" class="form-control" placeholder="C:\Users\user\.codex\auth.json">
+        <div class="recent-exports" id="recentExports"></div>
         <div class="modal-actions">
           <button class="btn btn-secondary" id="chooseExportFileBtn">Выбрать файл</button>
           <button class="btn btn-secondary" id="resetExportPathBtn">По умолчанию</button>
@@ -252,5 +257,8 @@
     </section>
 
     <script src="app.js"></script>
+    <div class="drop-overlay d-none" id="dropOverlay">
+      <div>Перетащите JSON-файл для импорта профиля</div>
+    </div>
   </body>
 </html>

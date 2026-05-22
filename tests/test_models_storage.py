@@ -112,3 +112,33 @@ def test_sync_active_profile_clears_expired_without_touching_file(tmp_path) -> N
     assert storage.sync_active_profile() is None
     assert storage.get_settings()["selected_profile_id"] is None
     assert target.read_text(encoding="utf-8") == before
+
+
+def test_export_creates_backup_before_overwrite(tmp_path) -> None:
+    storage = ProfileStorage(tmp_path)
+    target = tmp_path / "auth.json"
+    target.write_text("old", encoding="utf-8")
+    profile = parse_session_payload(session_payload(), "Профиль 1")
+    storage.save_profile(profile)
+
+    storage.export_profile_to_path(profile.id, str(target))
+
+    assert storage.last_backup_path is not None
+    assert storage.last_backup_path.exists()
+    assert storage.last_backup_path.read_text(encoding="utf-8") == "old"
+    assert target.read_text(encoding="utf-8") != "old"
+
+
+def test_recent_export_paths_are_deduplicated(tmp_path) -> None:
+    storage = ProfileStorage(tmp_path)
+    first = tmp_path / "one" / "auth.json"
+    second = tmp_path / "two" / "auth.json"
+
+    storage.set_export_path(str(first))
+    storage.set_export_path(str(second))
+    storage.set_export_path(str(first))
+    recent = storage.get_settings()["recent_export_paths"]
+
+    assert recent[0] == str(first)
+    assert recent[1] == str(second)
+    assert recent.count(str(first)) == 1

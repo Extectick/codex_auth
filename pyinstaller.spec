@@ -9,7 +9,11 @@ a = Analysis(
     ["app/main.py"],
     pathex=[str(root)],
     binaries=[],
-    datas=[(str(root / "app" / "web"), "app/web"), (str(root / "dist" / "updater.exe"), "updater")],
+    datas=[
+        (str(root / "app" / "web"), "app/web"),
+        (str(root / "app" / "assets" / "icon.ico"), "app/assets"),
+        (str(root / "dist" / "updater.exe"), "updater"),
+    ],
     hiddenimports=["webview.platforms.edgechromium"],
     hookspath=[],
     hooksconfig={},

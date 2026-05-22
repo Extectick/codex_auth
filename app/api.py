@@ -163,7 +163,7 @@ class AppApi:
     def activate_profile(self, profile_id: str) -> dict[str, Any]:
         try:
             target = self.storage.activate_profile(profile_id)
-            return self._ok(path=str(target))
+            return self._ok(path=str(target), backup_path=self._last_backup())
         except Exception as exc:
             return self._error(str(exc), exc=exc)
 
@@ -172,7 +172,7 @@ class AppApi:
             target = self.storage.sync_active_profile()
             if not target:
                 return self._error("Активный профиль не выбран или истёк.")
-            return self._ok(path=str(target))
+            return self._ok(path=str(target), backup_path=self._last_backup())
         except Exception as exc:
             return self._error(str(exc), exc=exc)
 
@@ -190,7 +190,7 @@ class AppApi:
             selected = files[0] if isinstance(files, (list, tuple)) else files
             settings = self.storage.set_export_path(str(selected))
             synced_path = self.storage.sync_active_profile()
-            return self._ok(settings=settings, synced_path=str(synced_path) if synced_path else None)
+            return self._ok(settings=settings, synced_path=str(synced_path) if synced_path else None, backup_path=self._last_backup())
         except Exception as exc:
             return self._error(str(exc), exc=exc)
 
@@ -198,7 +198,7 @@ class AppApi:
         try:
             settings = self.storage.set_export_path(export_path)
             synced_path = self.storage.sync_active_profile()
-            return self._ok(settings=settings, synced_path=str(synced_path) if synced_path else None)
+            return self._ok(settings=settings, synced_path=str(synced_path) if synced_path else None, backup_path=self._last_backup())
         except Exception as exc:
             return self._error(str(exc), exc=exc)
 
@@ -206,7 +206,7 @@ class AppApi:
         try:
             settings = self.storage.reset_export_path()
             synced_path = self.storage.sync_active_profile()
-            return self._ok(settings=settings, synced_path=str(synced_path) if synced_path else None)
+            return self._ok(settings=settings, synced_path=str(synced_path) if synced_path else None, backup_path=self._last_backup())
         except Exception as exc:
             return self._error(str(exc), exc=exc)
 
@@ -230,6 +230,24 @@ class AppApi:
         except Exception as exc:
             return self._error(str(exc), exc=exc)
 
+    def open_profiles_folder(self) -> dict[str, Any]:
+        try:
+            os.startfile(str(self.storage.profiles_dir))  # type: ignore[attr-defined]
+            return self._ok(path=str(self.storage.profiles_dir))
+        except Exception as exc:
+            return self._error(str(exc), exc=exc)
+
+    def open_export_file(self) -> dict[str, Any]:
+        try:
+            path = Path(self.storage.get_settings()["export_path"])
+            if path.exists():
+                os.startfile(str(path))  # type: ignore[attr-defined]
+                return self._ok(path=str(path))
+            os.startfile(str(path.parent))  # type: ignore[attr-defined]
+            return self._ok(path=str(path.parent))
+        except Exception as exc:
+            return self._error(str(exc), exc=exc)
+
     def read_logs(self) -> dict[str, Any]:
         try:
             if not self.storage.log_path.exists():
@@ -240,6 +258,9 @@ class AppApi:
 
     def _ok(self, **payload: Any) -> dict[str, Any]:
         return {"ok": True, **payload}
+
+    def _last_backup(self) -> str | None:
+        return str(self.storage.last_backup_path) if self.storage.last_backup_path else None
 
     def _updater_path(self) -> Path:
         base = Path(getattr(sys, "_MEIPASS", Path.cwd()))

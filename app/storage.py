@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -23,8 +24,11 @@ class ProfileStorage:
         self.root = Path(root)
         self.profiles_dir = self.root / "profiles"
         self.profiles_dir.mkdir(parents=True, exist_ok=True)
+        self.backups_dir = self.root / "backups"
+        self.backups_dir.mkdir(parents=True, exist_ok=True)
         self.log_path = self.root / "app.log"
         self.settings_path = self.root / "settings.json"
+        self.last_backup_path: Path | None = None
         self.root.mkdir(parents=True, exist_ok=True)
         self._normalize_settings()
 
@@ -57,11 +61,14 @@ class ProfileStorage:
             raise ValueError("Укажите имя файла для экспорта.")
         settings = self.get_settings()
         settings["export_path"] = str(path)
+        settings["recent_export_paths"] = self._push_recent_export_path(str(path), settings.get("recent_export_paths"))
         return self.save_settings(settings)
 
     def reset_export_path(self) -> dict[str, Any]:
         settings = self.get_settings()
-        settings["export_path"] = str(self.default_export_path())
+        export_path = str(self.default_export_path())
+        settings["export_path"] = export_path
+        settings["recent_export_paths"] = self._push_recent_export_path(export_path, settings.get("recent_export_paths"))
         return self.save_settings(settings)
 
     def list_profiles(self) -> list[Profile]:
@@ -107,6 +114,7 @@ class ProfileStorage:
             raise ValueError("Невозможно экспортировать: сессия истекла. Обновите профиль.")
         target = Path(export_path or self.get_settings()["export_path"])
         target.parent.mkdir(parents=True, exist_ok=True)
+        self.last_backup_path = self._backup_export_target(target)
         target.write_text(
             json.dumps(profile.to_export(), ensure_ascii=False, indent=2),
             encoding="utf-8",
@@ -147,7 +155,23 @@ class ProfileStorage:
         return {
             "export_path": str(self.default_export_path()),
             "selected_profile_id": None,
+            "recent_export_paths": [str(self.default_export_path())],
         }
+
+    def _push_recent_export_path(self, export_path: str, current: Any) -> list[str]:
+        recent = [str(item) for item in current if item] if isinstance(current, list) else []
+        normalized = str(Path(export_path).expanduser())
+        deduped = [item for item in recent if item != normalized]
+        return [normalized, *deduped][:8]
+
+    def _backup_export_target(self, target: Path) -> Path | None:
+        if not target.exists() or not target.is_file():
+            return None
+        stamp = utc_now_iso().replace(":", "-").replace(".", "-")
+        backup_name = f"{target.name}.{stamp}.bak"
+        backup_path = self.backups_dir / backup_name
+        shutil.copy2(target, backup_path)
+        return backup_path
 
     def _normalize_settings(self) -> None:
         settings = self.get_settings()
